@@ -702,11 +702,13 @@ module type POPULATION =
     type population;;
     type nourriture;;
 
-      (* bizarre 
-    val random_population : int -> (population -> individu) -> individu option;;
-       *)
-
+ 
+    (* crée une population *)
     val random_population : int -> population;;   
+
+    (* TODO
+      val get_random_individu : population -> individu;;
+      *)
 
     val sous_population : population -> pos -> population;;  
  
@@ -745,7 +747,7 @@ module type MAKE_ANIMAUX =
 (****************************************** Make_Zherbs ************************************)
 module Make_Zherbs : MAKE_PLANTES =
   functor (P : PLANETE) ->
-  functor (IND : INDIVIDU) ->
+  functor (IND : INDIVIDU with type pos = P.pos) ->
   struct
     type pos = P.pos;;
     type individu = IND.individu;;
@@ -759,11 +761,9 @@ module Make_Zherbs : MAKE_PLANTES =
 	| n -> random_population (n-1) ((IND.random_individu ()) :: l)
       in random_population nb_individu [];;
 
-      (*
+      
     let sous_population popu p = P.at_pos (IND.get_pos) p popu;;
-       *)
-    let sous_population popu p = List.filter (fun x -> IND.egal_pos (IND.get_pos x) p ) popu;;
-       
+
     let tuer_individu popu ind = List.filter (fun x -> not(IND.egal x ind)) popu;;
              
     let map f pop = List.map f pop;;
