@@ -11,11 +11,15 @@ let l1 = [0;1;2;3;4];;
 let lsome = [None; Some 1; None; Some 2];;
 
 (* Q1 *)
+(* 
+   insère un élément à un index donné, on suppose l'index pas trop grand
+*)
 let insert_at_pos e l index =
   let rec insert_at_pos e lg lres index =
     match (lres, index) with
     | (lres, 0) -> (lg @ [e]) @ lres
     | (x::xs, n) -> insert_at_pos e (lg @ [x]) xs (n-1)
+    | _ -> raise (Failure "Bizarre")
   in insert_at_pos e [] l index;;
 
 (* Q2 *)
@@ -171,8 +175,6 @@ module type INDIVIDU =
     type t = individu;;
  *)
 
-    val egal_pos : pos -> pos -> bool;;
-
     val egal : individu -> individu -> bool;;
     val random_individu : unit -> individu;;
 
@@ -222,7 +224,6 @@ module Make_Zherb : MAKE_INDIVIDU =
       last_id := !last_id + 1;;
 
     let egal ind1 ind2 = (get_id ind1) = (get_id ind2);;
-    let egal_pos p1 p2 = p1 = p2;;
 
     let random_individu () = 
       let id = ref 0 in
@@ -706,12 +707,9 @@ module type POPULATION =
     (* crée une population *)
     val random_population : int -> population;;   
 
-    (* TODO
-      val get_random_individu : population -> individu;;
-      *)
-
-    val sous_population : population -> pos -> population;;  
- 
+    val get_random_individu : population -> individu option;;
+    
+    val sous_population : population -> pos -> population;;   
     val tuer_individu : population -> individu -> population;;
      
     val map : (individu -> 'a) -> population -> 'a list;;
@@ -719,13 +717,9 @@ module type POPULATION =
     val reduce : (individu -> 'a -> 'a) -> population -> 'a -> 'a;;
   
     val vieillissement : population -> population;;
-
     val reproduction : population -> population;;
-
-    val mouvement : nourriture -> population -> population;;
-
+    val mouvement : nourriture -> population -> unit;;
     val nourriture : nourriture -> population -> (population * nourriture);;
-      
     val affichage : population -> unit;;
    
 
@@ -734,13 +728,13 @@ module type POPULATION =
 
 module type MAKE_PLANTES = 
   functor (P : PLANETE) ->
-  functor (IND : INDIVIDU with type pos = P.pos) -> (* MAKE_INDIVIDU *)
+  functor (IND : INDIVIDU with type pos = P.pos) -> 
   POPULATION with type pos = P.pos and type individu = IND.individu and type nourriture = unit;;
 
 module type MAKE_ANIMAUX =
   functor (P : PLANETE) ->
   functor (PROIE : POPULATION) ->
-  functor (IND : INDIVIDU) -> (* MAKE_INDIVIDU *)
+  functor (IND : INDIVIDU) -> 
   POPULATION with type pos = P.pos and type individu = IND.individu and type nourriture = PROIE.population;;
 
 
@@ -761,7 +755,8 @@ module Make_Zherbs : MAKE_PLANTES =
 	| n -> random_population (n-1) ((IND.random_individu ()) :: l)
       in random_population nb_individu [];;
 
-      
+    let get_random_individu popu = random_get popu;;
+        
     let sous_population popu p = P.at_pos (IND.get_pos) p popu;;
 
     let tuer_individu popu ind = List.filter (fun x -> not(IND.egal x ind)) popu;;
@@ -788,7 +783,8 @@ module Make_Zherbs : MAKE_PLANTES =
        retourne la population totale (ancienne population + nouveaux enfants)
      *)
     let reproduction popu =	
-      let popu_adulte = List.filter (fun ind -> (IND.get_age ind) = Adulte) popu in
+      let popu_adulte = 
+	List.filter (fun ind -> (IND.get_age ind) = Adulte) popu in
       let liste_nb_adulte_case = nb_adulte_case popu_adulte in
       let rec reproduction liste_restante ll =
 	match liste_restante with
@@ -799,7 +795,7 @@ module Make_Zherbs : MAKE_PLANTES =
       in popu @ (reproduction liste_nb_adulte_case []);;
 
 
-    let mouvement nourri popu = popu;;	
+    let mouvement nourri popu = ();;	
     let nourriture nourri popu = (popu, nourri);;      
     let affichage popu = iter (IND.afficher) popu;;
 
@@ -807,6 +803,7 @@ module Make_Zherbs : MAKE_PLANTES =
 
 
 (**************************************** Make_Bestioles **********************************)
+
 
 module Make_Bestioles : MAKE_ANIMAUX =
   functor (P : PLANETE) ->
@@ -818,25 +815,40 @@ module Make_Bestioles : MAKE_ANIMAUX =
     type population = individu list;;
     type nourriture = PROIE.population;;
 
-    let random_population () =
+    let random_population nb_individu =
+      let rec random_population n l =
+	match n with
+	| 0 -> l
+	| n -> random_population (n-1) ((IND.random_individu ()) :: l)
+      in random_population nb_individu [];;
+
+    let get_random_individu popu = random_get popu;;
+        
+    let sous_population popu p = P.at_pos (IND.get_pos) p popu;;
+
+    let tuer_individu popu ind = 
+      List.filter (fun x -> not(IND.egal x ind)) popu;;
+             
+    let map f pop = List.map f pop;;
+    let iter f pop = List.iter f pop;;
+    let reduce f pop a = List.fold_right f pop a;;
+
+    let vieillissement popu = clean_list (map (IND.vieillir) popu);;
       
+    (* let reproduction popu = ;; *)
+
+    (* Pour le moment fonction de stratégie constante *)
+    let strategie pos = 1;;
+    let mouvement nourri popu = iter (bouger strategie) popu;; 
+      
+    (*
+    let nourriture nourri popu = (popu, nourri);;
+    *)
+    
+    let affichage popu = iter (IND.afficher) popu;;
+   
 
   end;;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
