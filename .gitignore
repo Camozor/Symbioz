@@ -2,3 +2,4 @@ ocamlc.exe
 devoir.cmi
 devoir.cmo
 a.out
+.gitignore~
