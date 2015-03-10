@@ -171,10 +171,6 @@ module type INDIVIDU =
     type pos;;
     type individu;;
 
-(* pour utiliser les foncteurs standards d'ocaml eventuellement
-    type t = individu;;
- *)
-
     val egal : individu -> individu -> bool;;
     val random_individu : unit -> individu;;
 
@@ -182,15 +178,10 @@ module type INDIVIDU =
     val get_sexe : individu -> sexe;;
     val get_age : individu -> age;;
 
-
     val manger : int -> individu -> individu option;;
- 
     val bouger : (pos -> int) -> individu -> individu;;
-
     val reproduire : int -> individu -> individu -> individu list;;
-
     val vieillir : individu -> individu option;;
-
     val afficher : individu -> unit;;
  
   end;;
@@ -335,8 +326,6 @@ module Make_Krapit : MAKE_INDIVIDU =
     let egal ind1 ind2 = 
       (get_id ind1) = (get_id ind2);;
 
-    let egal_pos p1 p2 = p1 = p2;;
-
     let random_individu () = 
       let id = ref 0 in
       let age = ref (random_age ()) in
@@ -454,7 +443,7 @@ module Make_Krapit : MAKE_INDIVIDU =
       let p = get_pos ind in
       print_string "Krapit, identifiant : ";
       print_int (get_id ind);
-      print_string "pv : ";
+      print_string " pv : ";
       print_int (get_pv ind);
       print_string " en position ";
       P.print_pos p;
@@ -516,8 +505,6 @@ module Make_Krogul : MAKE_INDIVIDU =
 
     let egal ind1 ind2 = 
       (get_id ind1) = (get_id ind2);;
-
-    let egal_pos p1 p2 = p1 = p2;;
 
     let random_individu () = 
       let id = ref 0 in
@@ -685,7 +672,7 @@ module Make_Krogul : MAKE_INDIVIDU =
       let p = get_pos ind in
       print_string "Krogul, identifiant : ";
       print_int (get_id ind);
-      print_string "pv : ";
+      print_string " pv : ";
       print_int (get_pv ind);
       print_string " en position ";
       P.print_pos p;
@@ -718,7 +705,7 @@ module type POPULATION =
   
     val vieillissement : population -> population;;
     val reproduction : population -> population;;
-    val mouvement : nourriture -> population -> unit;;
+    val mouvement : nourriture -> population -> population;;
     val nourriture : nourriture -> population -> (population * nourriture);;
     val affichage : population -> unit;;
    
@@ -728,21 +715,25 @@ module type POPULATION =
 
 module type MAKE_PLANTES = 
   functor (P : PLANETE) ->
-  functor (IND : INDIVIDU with type pos = P.pos) -> 
-  POPULATION with type pos = P.pos and type individu = IND.individu and type nourriture = unit;;
+(*  functor (IND : INDIVIDU with type pos = P.pos) -> *)
+    functor (MI : MAKE_INDIVIDU) ->
+      POPULATION with type pos = P.pos and type individu = MI(P).individu and type nourriture = unit;;
 
 module type MAKE_ANIMAUX =
   functor (P : PLANETE) ->
-  functor (PROIE : POPULATION) ->
-  functor (IND : INDIVIDU) -> 
-  POPULATION with type pos = P.pos and type individu = IND.individu and type nourriture = PROIE.population;;
+  functor (PROIE : POPULATION with type pos = P.pos) ->
+ (* functor (IND : INDIVIDU with type pos = P.pos) -> *)
+    functor (MI : MAKE_INDIVIDU) -> 
+  POPULATION with type pos = P.pos and type individu = MI(P).individu and type nourriture = PROIE.population;;
 
 
 (****************************************** Make_Zherbs ************************************)
 module Make_Zherbs : MAKE_PLANTES =
   functor (P : PLANETE) ->
-  functor (IND : INDIVIDU with type pos = P.pos) ->
+  (*  functor (IND : INDIVIDU with type pos = P.pos) ->*)
+    functor (MI:MAKE_INDIVIDU) ->
   struct
+    module IND = MI(P);;
     type pos = P.pos;;
     type individu = IND.individu;;
     type population = individu list;;
@@ -795,8 +786,8 @@ module Make_Zherbs : MAKE_PLANTES =
       in popu @ (reproduction liste_nb_adulte_case []);;
 
 
-    let mouvement nourri popu = ();;	
-    let nourriture nourri popu = (popu, nourri);;      
+    let mouvement nourri popu = popu;;	
+    let nourriture nourri popu = (popu, nourri);;     
     let affichage popu = iter (IND.afficher) popu;;
 
   end;;
@@ -807,9 +798,11 @@ module Make_Zherbs : MAKE_PLANTES =
 
 module Make_Bestioles : MAKE_ANIMAUX =
   functor (P : PLANETE) ->
-  functor (PROIE : POPULATION)
-  functor (IND : INDIVIDU) ->
+  functor (PROIE : POPULATION with type pos = P.pos) ->
+    (* functor (IND : INDIVIDU with type pos = P.pos) -> *)
+    functor (MI : MAKE_INDIVIDU) ->
   struct
+    module IND = MI(P);;
     type pos = P.pos;;
     type individu = IND.individu;;
     type population = individu list;;
@@ -837,14 +830,71 @@ module Make_Bestioles : MAKE_ANIMAUX =
       
     (* let reproduction popu = ;; *)
 
+    (* retourne une liste de couples (individu, nb_adulte_dans_case *)
+    let nb_adulte_case popu =
+      let rec nb_adulte_case popu_restante l =
+	match popu_restante with
+	| [] -> l
+	| ind :: ind' -> 
+	   nb_adulte_case ind' ((ind, List.length (sous_population popu  (IND.get_pos ind))) :: l)
+      in nb_adulte_case popu [];;
+
+    (* reproduit la population 
+       trie la population pour ne garder que les adultes,
+       reproduit les adultes,
+       retourne la population totale (ancienne population + nouveaux enfants)
+     *)
+    let reproduction popu =	
+      let popu_adulte = 
+	List.filter (fun ind -> (IND.get_age ind) = Adulte) popu in
+      let liste_nb_adulte_case = nb_adulte_case popu_adulte in
+      let rec reproduction liste_restante ll =
+	match liste_restante with
+	| [] -> ll
+	| (ind, n) :: lcouple -> 
+	   let liste_enfant = IND.reproduire n ind ind in
+	   reproduction lcouple (ll @ liste_enfant)
+      in popu @ (reproduction liste_nb_adulte_case []);;
+
+
     (* Pour le moment fonction de stratégie constante *)
     let strategie pos = 1;;
-    let mouvement nourri popu = iter (bouger strategie) popu;; 
+    let mouvement nourri popu = map (IND.bouger strategie) popu;; 
       
     (*
     let nourriture nourri popu = (popu, nourri);;
     *)
-    
+
+    let nourriture nourri popu =
+      let rec nutri_rec popu_restante popu_bonne nourriture_bonne =
+	match popu_restante with
+	| [] -> (popu_bonne, nourriture_bonne)
+	| predateur :: predateur' ->
+	  let nourriture_case = PROIE.sous_population nourriture_bonne (IND.get_pos predateur) in
+	  let victime = PROIE.get_random_individu nourriture_case in
+	  match victime with
+	  (* pas de nourriture dans la case *)
+	  | None -> 
+	    begin
+	      let mangeur = IND.manger 0 predateur in
+	      match mangeur with
+	      (* cas où le prédateur est mort de faim *)
+	      | None -> nutri_rec predateur' popu_bonne nourriture_bonne
+	      (* cas où il n'a pas mangé mais ne meurt pas de faim *)
+	      | Some mangeur -> 
+		let nouvelle_popu_bonne = (mangeur :: (tuer_individu popu_bonne predateur)) in
+		nutri_rec predateur' nouvelle_popu_bonne nourriture_bonne
+	    end
+	  (* cas où il y a de la nourriture dans la case *)
+	  | Some victime -> 
+	    let mangeur = IND.manger 1 predateur in
+	    let nourriture_restante = PROIE.tuer_individu nourriture_bonne victime in
+	    let nouvelle_popu_bonne = (mangeur :: (tuer_individu popu_bonne predateur)) in
+	    nutri_rec predateur' nouvelle_popu_bonne nourriture_restante
+      in nutri_rec popu [] nourri;;
+	    
+	    
+	    
     let affichage popu = iter (IND.afficher) popu;;
    
 
@@ -855,7 +905,10 @@ module Make_Bestioles : MAKE_ANIMAUX =
 
 (* Tests *)
 module Zherb = Make_Zherb (Symbioz);;
-module Zherbs = Make_Zherbs (Symbioz) (Zherb);;
+module Zherbs = Make_Zherbs (Symbioz) (Make_Zherb);;
+
+module Krapit = Make_Krapit (Symbioz);;
+module Krapits = Make_Bestioles (Symbioz) (Zherbs) (Make_Krapit);;
 
 let pop_zherbs = Zherbs.random_population 10;;
 Zherbs.affichage pop_zherbs;;
@@ -865,3 +918,13 @@ let pop3 = Zherbs.vieillissement pop_zherbs;;
 Zherbs.affichage pop3;;
 let pop4 = Zherbs.vieillissement pop3;;
 Zherbs.affichage pop4;;
+
+
+
+
+let pop = Krapits.random_population 10;;
+Krapits.affichage pop;;
+Krapits.mouvement pop_zherbs pop;;
+Krapits.affichage pop;;
+Krapits.nourriture
+
