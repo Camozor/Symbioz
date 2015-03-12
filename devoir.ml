@@ -194,42 +194,34 @@ module Make_Zherb : MAKE_INDIVIDU =
   functor (P : PLANETE) ->
   struct
     type pos = P.pos;;
-    type individu = {id : int ref; age : age ref; pos : pos ref};;
-
-    (* Getters / Setters *)
-    let get_id ind = !(ind.id);;
-    exception SexException;;
-    let get_sexe ind = raise SexException;;
-    let get_age ind = !(ind.age);;
-    let get_pos ind = !(ind.pos);;
-    let set_id ind id =
-      ind.id := id;;
-    let set_age ind age = 
-      ind.age := age;;
-    let set_pos ind pos =
-      ind.pos := pos;;
-      
+    type individu = {id : int; age : age; pos : pos};;
 
     let last_id = ref 0;;
-    let incr_last_id () =
-      last_id := !last_id + 1;;
+
+    (* Getters *)
+    let get_id ind = ind.id;;
+    exception SexException;;
+    let get_sexe ind = raise SexException;;
+    let get_age ind = ind.age;;
+    let get_pos ind = ind.pos;;
+      
+    let new_id () =
+      last_id := !last_id + 1;
+      let id = !last_id in id
+      
 
     let egal ind1 ind2 = (get_id ind1) = (get_id ind2);;
 
     let random_individu () = 
-      let id = ref 0 in
-      let age = ref (random_age ()) in
-      let pos = ref (P.random_pos ()) in
-      id := !last_id + 1;
-      incr_last_id ();
+      let id = new_id () in
+      let age = random_age () in
+      let pos = P.random_pos () in
       {id = id; age = age; pos = pos};;
 
     let creer_bebe pos =
-      let id = ref 0 in
-      let age = ref Bebe in
-      let pos = ref pos in
-      id := !last_id + 1;
-      incr_last_id ();
+      let id = new_id () in
+      let age = Bebe in
+      let pos = pos in
       {id = id; age = age; pos = pos};;
  
    
@@ -245,27 +237,20 @@ module Make_Zherb : MAKE_INDIVIDU =
 	let rec reproduire nb l =
 	  match nb with
 	  | 0 -> []
-	  | nb -> let rand = Random.float 1. in	
-		  if rand < 0.1 
-		  then 
-		    (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
-		  else if rand > 0.1 && rand < 0.2 
-		  then 
-		    (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)			
-		  else if rand > 0.2 && rand < 0.3 
-		  then 
-		    (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
-		  else if rand > 0.3 && rand < 0.4 
-		  then 
-		    (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
-		  else (creer_bebe pos) :: (reproduire (nb-1) l)
+	  | nb -> let rand = Random.int 10 in
+		  match rand with
+		  | 0 -> (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
+		  | 1 -> (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)
+		  | 2 -> (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
+		  | 3 -> (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
+		  | _ -> (creer_bebe pos) :: (reproduire (nb-1) l)
 	in reproduire nbenfant [];;
 
 
     let vieillir ind =
       match (get_age ind) with
-	| Bebe -> (set_age ind Enfant); Some ind
-	| Enfant -> (set_age ind Adulte); Some ind
+	| Bebe -> Some {ind with age = Enfant}
+	| Enfant -> Some {ind with age = Adulte}
 	| Adulte -> None;;
 
     let afficher ind =
@@ -287,35 +272,23 @@ module Make_Krapit : MAKE_INDIVIDU =
        esperance_vie : nombre de tour que vivra le krapit à l'age adulte
        pv : nombre de point de vie de l'individu
      *)
-    type individu = {id : int ref; age : age ref; sexe : sexe ref; tour : int ref;
-		     esperance_vie : int ref; pos : pos ref; pv : int ref};;
+    type individu = {id : int; age : age; sexe : sexe; tour : int;
+		     esperance_vie : int; pos : pos; pv : int};;
 
-    (* Getters / Setters *)
-    let get_id ind = !(ind.id);;
-    let get_age ind = !(ind.age);;
-    let get_sexe ind = !(ind.sexe);;
-    let get_tour ind = !(ind.tour);;
-    let get_esperance_vie ind = !(ind.esperance_vie);;
-    let get_pos ind = !(ind.pos);;
-    let get_pv ind = !(ind.pv);;
-    let set_id ind id =
-      ind.id := id;;
-    let set_age ind age = 
-      ind.age := age;;
-    let set_sexe ind sexe =
-      ind.sexe := sexe;;
-    let set_tour ind tour =
-      ind.tour := tour;;
-    let set_esperance_vie ind esperance_vie =
-      ind.esperance_vie := esperance_vie;;
-    let set_pos ind pos =
-      ind.pos := pos;;
-    let set_pv ind pv =
-      ind.pv := pv;;
-
+    (* Getters *)
+    let get_id ind = ind.id;;
+    let get_age ind = ind.age;;
+    let get_sexe ind = ind.sexe;;
+    let get_tour ind = ind.tour;;
+    let get_esperance_vie ind = ind.esperance_vie;;
+    let get_pos ind = ind.pos;;
+    let get_pv ind = ind.pv;;
+ 
     let last_id = ref 0;;
-    let incr_last_id () =
-      last_id := !last_id + 1;;
+
+    let new_id () =
+      last_id := !last_id + 1;
+      let id = !last_id in id
 
     let esperance_vie_max = 4;;
     let pv_max = 6;;
@@ -327,75 +300,43 @@ module Make_Krapit : MAKE_INDIVIDU =
       (get_id ind1) = (get_id ind2);;
 
     let random_individu () = 
-      let id = ref 0 in
-      let age = ref (random_age ()) in
-      let sexe = ref (random_sexe ()) in
-      let tour = ref 0 in
-      let esperance_vie = ref 0 in
-      let pos = ref (P.random_pos ()) in
-      let pv = ref pv_max in
-      id := !last_id + 1;
-      incr_last_id ();
-      {id = id; age = age; sexe = sexe; tour = tour; esperance_vie = esperance_vie; pos = pos; pv = pv};;
+      let age = random_age () in
+      let sexe = random_sexe () in
+      let pos = P.random_pos () in
+      let pv = pv_max in
+      let id = new_id () in
+      {id = id; age = age; sexe = sexe; tour = 0; esperance_vie = 0; pos = pos; pv = pv};;
 
     let creer_bebe pos =
-      let id = ref 0 in
-      let age = ref Bebe in
-      let sexe = ref (random_sexe ()) in
-      let tour = ref 0 in
-      let esperance_vie = ref 0 in
-      let pos = ref pos in
-      let pv = ref pv_max in
-      id := !last_id + 1;
-      incr_last_id ();
-      {id = id; age = age; sexe = sexe; tour = tour; esperance_vie = esperance_vie; pos = pos; pv = pv};;
+      let age = Bebe in
+      let sexe = random_sexe () in
+      let pv = pv_max in
+      let id = new_id () in
+      {id = id; age = age; sexe = sexe; tour = 0; esperance_vie = 0; pos = pos; pv = pv};;
 
     
     let manger quantite ind = 
       if quantite > 0 
       then 
-	begin
-	  set_pv ind pv_max;
-	  Some ind
-	end
+	  Some {ind with pv = pv_max}
       else 
-	begin
-	  set_pv ind ((get_pv ind) - pv_par_tour);
-	  if (get_pv ind) = 0 
+	let nouvel_ind = {ind with pv = (get_pv ind) - pv_par_tour} in
+	  if (get_pv nouvel_ind) = 0 
 	  then None 
-	  else Some ind
-	end;;
+	  else Some nouvel_ind;;
 
 
     let bouger f ind =
       if ((get_pv ind) >= seuil_faim) 
       then ind
-      else 
-	let pos = (get_pos ind) in
-	let rand = Random.float 1. in
-	if rand < 0.25
-	then 
-	  begin
-	    set_pos ind (P.ouest pos);
-	    ind
-	  end
-	else if rand < 0.5
-	then 
-	  begin
-	    set_pos ind (P.nord pos);
-	    ind
-	  end
-	else if rand < 0.75
-	then 
-	  begin
-	    set_pos ind (P.est pos);
-	    ind
-	  end
-	else 
-	  begin
-	    set_pos ind (P.sud pos);
-	    ind
-	  end;;
+      else
+	let pos = get_pos ind in
+	let rand = Random.int 4 in
+	match rand with
+	| 0 -> {ind with pos = (P.ouest pos)}
+	| 1 -> {ind with pos = (P.nord pos)}
+	| 2 -> {ind with pos = (P.est pos)}
+	| _ -> {ind with pos = (P.sud pos)};;
 
     let reproduire nbenfant ind1 ind2 =
       if ((get_age ind1) != Adulte) || ((get_age ind2) != Adulte) || 
@@ -407,29 +348,25 @@ module Make_Krapit : MAKE_INDIVIDU =
 	let rec reproduire nb l =
 	  match nb with
 	  | 0 -> []
-	  | nb -> let rand = Random.float 1. in	
-		  if rand < 0.2 
-		  then 
-		    (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
-		  else if rand < 0.4
-		  then 
-		    (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)			
-		  else if rand < 0.6
-		  then 
-		    (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
-		  else if rand < 0.8
-		  then 
-		    (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
-		  else (creer_bebe pos) :: (reproduire (nb-1) l)
+	  | nb -> let rand = Random.int 5 in
+		  match rand with
+		  | 0 -> (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
+		  | 1 -> (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)
+		  | 2 -> (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
+		  | 3 -> (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
+		  | _ -> (creer_bebe pos) :: (reproduire (nb-1) l)
 	in reproduire nbenfant [];;
 
     let vieillir ind =
       let age = get_age ind in
       match age with
-      | Bebe -> set_age ind Enfant; Some ind
-      | Enfant -> set_age ind Adulte; 
+      | Bebe -> Some {ind with age = Enfant}
+      | Enfant -> let esperance_vie = (Random.int esperance_vie_max) + 1 in
+		  Some {ind with age = Adulte; esperance_vie = esperance_vie}
+	(*
+	set_age ind Adulte; 
 		  set_esperance_vie ind ((Random.int esperance_vie_max) + 1);
-		  Some ind
+		  Some ind *)
       | Adulte -> if (get_tour ind) >= (get_esperance_vie ind) 
 		  then None 
 		  else 
@@ -888,9 +825,12 @@ module Make_Bestioles : MAKE_ANIMAUX =
 	  (* cas où il y a de la nourriture dans la case *)
 	  | Some victime -> 
 	    let mangeur = IND.manger 1 predateur in
-	    let nourriture_restante = PROIE.tuer_individu nourriture_bonne victime in
-	    let nouvelle_popu_bonne = (mangeur :: (tuer_individu popu_bonne predateur)) in
-	    nutri_rec predateur' nouvelle_popu_bonne nourriture_restante
+	    match mangeur with
+	    | None -> nutri_rec predateur' popu_bonne nourriture_bonne
+	    | Some mangeur ->
+	      let nourriture_restante = PROIE.tuer_individu nourriture_bonne victime in
+	      let nouvelle_popu_bonne = (mangeur :: (tuer_individu popu_bonne predateur)) in
+	      nutri_rec predateur' nouvelle_popu_bonne nourriture_restante
       in nutri_rec popu [] nourri;;
 	    
 	    
@@ -907,6 +847,7 @@ module Make_Bestioles : MAKE_ANIMAUX =
 module Zherb = Make_Zherb (Symbioz);;
 module Zherbs = Make_Zherbs (Symbioz) (Make_Zherb);;
 
+
 module Krapit = Make_Krapit (Symbioz);;
 module Krapits = Make_Bestioles (Symbioz) (Zherbs) (Make_Krapit);;
 
@@ -922,9 +863,19 @@ Zherbs.affichage pop4;;
 
 
 
-let pop = Krapits.random_population 10;;
+let pop = Krapits.random_population 100;;
 Krapits.affichage pop;;
 Krapits.mouvement pop_zherbs pop;;
 Krapits.affichage pop;;
-Krapits.nourriture
-
+let (pop, nourri) = Krapits.nourriture pop_zherbs pop;;
+Krapits.affichage pop;;
+Zherbs.affichage nourri;;
+let (pop, nourri) = Krapits.nourriture nourri pop;;
+Krapits.affichage pop;;
+Zherbs.affichage nourri;;
+let (pop, nourri) = Krapits.nourriture nourri pop;;
+Krapits.affichage pop;;
+Zherbs.affichage nourri;;
+let (pop, nourri) = Krapits.nourriture nourri pop;;
+Krapits.affichage pop;;
+Zherbs.affichage nourri;;
