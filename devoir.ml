@@ -24,7 +24,7 @@ let insert_at_pos e l index =
 
 (* Q2 *)
 let insert_at_random e l =
-  let pos = Random.int ((List.length l)+1) in
+  let pos = Random.int ((List.length l) + 1) in
   insert_at_pos e l pos;;
 
 (* Q3 *)
@@ -101,7 +101,7 @@ module type PLANETE =
     val clear : unit -> unit;;
   end;;
 
-(*************************************** SYMBIOZ *********************************************)
+(****************************** SYMBIOZ ******************************)
 
 module Symbioz : PLANETE with type pos = int * int =
   struct
@@ -142,7 +142,8 @@ module Symbioz : PLANETE with type pos = int * int =
     (* 
        f : fonction qui indique comment calculer la position d'un element 
        l : liste des elements
-       retour : liste de liste des elements par positions (autant de listes que de cases)
+       retour : liste de liste des elements par positions
+       (autant de listes que de cases)
     *)
     let sort_by_pos f l = 
       let ll = ref [] in
@@ -154,7 +155,8 @@ module Symbioz : PLANETE with type pos = int * int =
       !ll;;
 
     let print_pos (p1, p2) =
-      print_string "("; print_int p1; print_string ", "; print_int p2; print_string ")";;
+      print_string "("; print_int p1; print_string ", ";
+      print_int p2; print_string ")";;
 
 
     let clear () = ();;
@@ -164,7 +166,7 @@ module Symbioz : PLANETE with type pos = int * int =
 
 
 
-(************************************ GENETIQUE ELEMENTAIRE  ****************************************)
+(*********************** GENETIQUE ELEMENTAIRE  ***********************)
 
 module type INDIVIDU =
   sig
@@ -187,9 +189,10 @@ module type INDIVIDU =
   end;;
 
 
-module type MAKE_INDIVIDU = functor (P : PLANETE) -> INDIVIDU with type pos = P.pos;;
+module type MAKE_INDIVIDU = 
+  functor (P : PLANETE) -> INDIVIDU with type pos = P.pos;;
 
-(****************************************** Make_Zherb *************************************************)
+(**************************** Make_Zherb ********************************)
 module Make_Zherb : MAKE_INDIVIDU = 
   functor (P : PLANETE) ->
   struct
@@ -237,6 +240,7 @@ module Make_Zherb : MAKE_INDIVIDU =
 	let rec reproduire nb l =
 	  match nb with
 	  | 0 -> []
+	  (* 10% sur les cases d'à côté et 60% sur la case des parents *)
 	  | nb -> let rand = Random.int 10 in
 		  match rand with
 		  | 0 -> (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
@@ -263,7 +267,7 @@ module Make_Zherb : MAKE_INDIVIDU =
 
   end;;
 
-(*********************************** Make_Krapit ****************************************************)
+(*************************** Make_Krapit *******************************)
 module Make_Krapit : MAKE_INDIVIDU = 
   functor (P : PLANETE) ->
   struct 
@@ -342,7 +346,8 @@ module Make_Krapit : MAKE_INDIVIDU =
 
     let reproduire nbenfant ind1 ind2 =
       if ((get_age ind1) != Adulte) || ((get_age ind2) != Adulte) || 
-	   ((get_pos ind1) != (get_pos ind2)) || ((get_sexe ind1) = (get_sexe ind2))
+	   ((get_pos ind1) != (get_pos ind2)) || 
+	   ((get_sexe ind1) = (get_sexe ind2))
       then []
       else
 	let pos = get_pos ind1 in
@@ -350,6 +355,7 @@ module Make_Krapit : MAKE_INDIVIDU =
 	let rec reproduire nb l =
 	  match nb with
 	  | 0 -> []
+	  (* 20% sur les cases d'à côté et 20% sur la case des parents *)
 	  | nb -> let rand = Random.int 5 in
 		  match rand with
 		  | 0 -> (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
@@ -383,7 +389,7 @@ module Make_Krapit : MAKE_INDIVIDU =
 
 
 
-(****************************************** Make_Krogul *****************************************)
+(***************************** Make_Krogul ******************************)
 
 module Make_Krogul : MAKE_INDIVIDU =
   functor (P : PLANETE) ->
@@ -494,14 +500,16 @@ module Make_Krogul : MAKE_INDIVIDU =
       else
 	begin	  
 	  let ltraitee = determiner_pos f ind in
-	  let pos_choisie = List.nth ltraitee (Random.int (List.length ltraitee)) in 
+	  let pos_choisie = 
+	    List.nth ltraitee (Random.int (List.length ltraitee)) in 
 	  {ind with pos = pos_choisie}
 	end;;
 
     
     let reproduire nbenfant ind1 ind2 =
       if ((get_age ind1) != Adulte) || ((get_age ind2) != Adulte) || 
-	   ((get_pos ind1) != (get_pos ind2)) || ((get_sexe ind1) = (get_sexe ind2))
+	   ((get_pos ind1) != (get_pos ind2)) || 
+	   ((get_sexe ind1) = (get_sexe ind2))
       then []
       else
 	let pos = get_pos ind1 in
@@ -533,6 +541,8 @@ module Make_Krogul : MAKE_INDIVIDU =
 	    match tour_actuel < nb_tour_enfant with
 	      | true -> Some {ind with tour = tour_actuel + 1}
 	      | false -> 
+		(* esperance de vie dans l'intervalle 
+		   [nb_tour_adulte_min; nb_tour_adulte_max] *)
 		 let esperance_vie = (Random.int 
 				 (nb_tour_adulte_max - 
 				    nb_tour_adulte_min + 1)) in
@@ -560,7 +570,7 @@ module Make_Krogul : MAKE_INDIVIDU =
   end;;
  
 
-(************************************** POPULATION *********************************************)
+(***************************** POPULATION ********************************)
 
 module type POPULATION =
   sig
@@ -594,22 +604,23 @@ module type POPULATION =
 
 module type MAKE_PLANTES = 
   functor (P : PLANETE) ->
-(*  functor (IND : INDIVIDU with type pos = P.pos) -> *)
     functor (MI : MAKE_INDIVIDU) ->
-      POPULATION with type pos = P.pos and type individu = MI(P).individu and type nourriture = unit;;
+      POPULATION with type pos = P.pos 
+		 and type individu = MI(P).individu 
+		 and type nourriture = unit;;
 
 module type MAKE_ANIMAUX =
   functor (P : PLANETE) ->
   functor (PROIE : POPULATION with type pos = P.pos) ->
- (* functor (IND : INDIVIDU with type pos = P.pos) -> *)
     functor (MI : MAKE_INDIVIDU) -> 
-  POPULATION with type pos = P.pos and type individu = MI(P).individu and type nourriture = PROIE.population;;
+  POPULATION with type pos = P.pos 
+	     and type individu = MI(P).individu 
+	     and type nourriture = PROIE.population;;
 
 
-(****************************************** Make_Zherbs ************************************)
+(**************************** Make_Zherbs ******************************)
 module Make_Zherbs : MAKE_PLANTES =
   functor (P : PLANETE) ->
-  (*  functor (IND : INDIVIDU with type pos = P.pos) ->*)
     functor (MI:MAKE_INDIVIDU) ->
   struct
     module IND = MI(P);;
@@ -629,7 +640,8 @@ module Make_Zherbs : MAKE_PLANTES =
         
     let sous_population popu p = P.at_pos (IND.get_pos) p popu;;
 
-    let tuer_individu popu ind = List.filter (fun x -> not(IND.egal x ind)) popu;;
+    let tuer_individu popu ind = 
+      List.filter (fun x -> not(IND.egal x ind)) popu;;
              
     let map f pop = List.map f pop;;
     let iter f pop = List.iter f pop;;
@@ -644,7 +656,8 @@ module Make_Zherbs : MAKE_PLANTES =
 	match popu_restante with
 	| [] -> l
 	| ind :: ind' -> 
-	   nb_adulte_case ind' ((ind, List.length (sous_population popu  (IND.get_pos ind))) :: l)
+	   nb_adulte_case ind' ((ind, List.length 
+	     (sous_population popu  (IND.get_pos ind))) :: l)
       in nb_adulte_case popu [];;
 
     (* reproduit la population 
@@ -672,13 +685,12 @@ module Make_Zherbs : MAKE_PLANTES =
   end;;
 
 
-(**************************************** Make_Bestioles **********************************)
+(**************************** Make_Bestioles *****************************)
 
 
 module Make_Bestioles : MAKE_ANIMAUX =
   functor (P : PLANETE) ->
   functor (PROIE : POPULATION with type pos = P.pos) ->
-    (* functor (IND : INDIVIDU with type pos = P.pos) -> *)
     functor (MI : MAKE_INDIVIDU) ->
   struct
     module IND = MI(P);;
@@ -704,36 +716,76 @@ module Make_Bestioles : MAKE_ANIMAUX =
     let map f pop = List.map f pop;;
     let iter f pop = List.iter f pop;;
     let reduce f pop a = List.fold_right f pop a;;
+    let flatten liste_pop = List.flatten liste_pop;;
 
     let vieillissement popu = clean_list (map (IND.vieillir) popu);;
-      
-    (* let reproduction popu = ;; *)
 
-    (* retourne une liste de couples (individu, nb_adulte_dans_case *)
-    let nb_adulte_case popu =
-      let rec nb_adulte_case popu_restante l =
+    (* population -> population *)
+    let garder_adultes popu =
+      	List.filter (fun ind -> (IND.get_age ind) = Adulte) popu;;
+
+    (* retourne une liste de liste d'individus par case *)
+    let separer_individus popu =
+      P.sort_by_pos IND.get_pos popu;;
+
+    (* prend une liste d'individu dans une case
+       retourne un couple de listes mâles et femelles *)
+    let trier_individus_par_sexe popu =
+      let rec trier_individus popu_restante (popu_male, popu_femelle) =
 	match popu_restante with
-	| [] -> l
-	| ind :: ind' -> 
-	   nb_adulte_case ind' ((ind, List.length (sous_population popu  (IND.get_pos ind))) :: l)
-      in nb_adulte_case popu [];;
+	  | [] -> (popu_male, popu_femelle)
+	  | ind :: ind' ->
+	    match IND.get_sexe ind with
+	      | Masculin -> trier_individus ind' 
+		((ind :: popu_male), popu_femelle)
+	      | Feminin -> trier_individus ind'
+		(popu_male, (ind :: popu_femelle))
+      in trier_individus popu ([] , []);;
 
-    (* reproduit la population 
-       trie la population pour ne garder que les adultes,
-       reproduit les adultes,
-       retourne la population totale (ancienne population + nouveaux enfants)
-     *)
-    let reproduction popu =	
-      let popu_adulte = 
-	List.filter (fun ind -> (IND.get_age ind) = Adulte) popu in
-      let liste_nb_adulte_case = nb_adulte_case popu_adulte in
-      let rec reproduction liste_restante ll =
-	match liste_restante with
-	| [] -> ll
-	| (ind, n) :: lcouple -> 
-	   let liste_enfant = IND.reproduire n ind ind in
-	   reproduction lcouple (ll @ liste_enfant)
-      in popu @ (reproduction liste_nb_adulte_case []);;
+    (* prend un couple de listes (males, femelles)
+       retourne une liste de couples *)
+    let creer_couples (popu_male, popu_femelle) =
+      let rec creer_couples (males, femelles) liste_couples =
+	match (males, femelles) with
+	  | (liste_males, liste_femelles) ->
+	    let male = random_get liste_males in
+	    let femelle = random_get liste_femelles in
+	    match male with
+	      | None -> liste_couples
+	      | Some male ->
+		begin
+		  match femelle with
+		    | None -> liste_couples
+		    | Some femelle ->
+		      let liste_males_restant = 
+			tuer_individu liste_males male in
+		      let liste_femelles_restant = 
+			tuer_individu liste_femelles femelle in
+		      creer_couples (liste_males_restant, 
+				     liste_femelles_restant)
+			((male, femelle) :: liste_couples)
+		end
+      in creer_couples (popu_male, popu_femelle);;
+
+    (* prend une liste de couples 
+       retourne une liste d'enfants *)
+    let reproduire_couples liste_couples =
+      let reproduire_couple (male, femelle) =
+	IND.reproduire 0 male femelle in
+      let ll = map (reproduire_couple) liste_couples
+      in flatten ll;;
+
+
+    let reproduction popu =
+      let popu_adulte = garder_adultes popu in
+      let liste_adulte_par_case = separer_individus popu_adulte in
+      let liste_sexe_par_case = 
+	map trier_individus_par_sexe liste_adulte_par_case in
+      let liste_couples_par_case =
+	map creer_couples liste_sexe_par_case in
+      let l = map reproduire_couples liste_couples_par_case
+      in popu;;
+	
 
 
     (* Pour le moment fonction de stratégie constante *)
@@ -749,7 +801,8 @@ module Make_Bestioles : MAKE_ANIMAUX =
 	match popu_restante with
 	| [] -> (popu_bonne, nourriture_bonne)
 	| predateur :: predateur' ->
-	  let nourriture_case = PROIE.sous_population nourriture_bonne (IND.get_pos predateur) in
+	  let nourriture_case = 
+	    PROIE.sous_population nourriture_bonne (IND.get_pos predateur) in
 	  let victime = PROIE.get_random_individu nourriture_case in
 	  match victime with
 	  (* pas de nourriture dans la case *)
@@ -761,7 +814,8 @@ module Make_Bestioles : MAKE_ANIMAUX =
 	      | None -> nutri_rec predateur' popu_bonne nourriture_bonne
 	      (* cas où il n'a pas mangé mais ne meurt pas de faim *)
 	      | Some mangeur -> 
-		let nouvelle_popu_bonne = (mangeur :: (tuer_individu popu_bonne predateur)) in
+		let nouvelle_popu_bonne = 
+		  (mangeur :: (tuer_individu popu_bonne predateur)) in
 		nutri_rec predateur' nouvelle_popu_bonne nourriture_bonne
 	    end
 	  (* cas où il y a de la nourriture dans la case *)
@@ -770,8 +824,10 @@ module Make_Bestioles : MAKE_ANIMAUX =
 	    match mangeur with
 	    | None -> nutri_rec predateur' popu_bonne nourriture_bonne
 	    | Some mangeur ->
-	      let nourriture_restante = PROIE.tuer_individu nourriture_bonne victime in
-	      let nouvelle_popu_bonne = (mangeur :: (tuer_individu popu_bonne predateur)) in
+	      let nourriture_restante = 
+		PROIE.tuer_individu nourriture_bonne victime in
+	      let nouvelle_popu_bonne = 
+		(mangeur :: (tuer_individu popu_bonne predateur)) in
 	      nutri_rec predateur' nouvelle_popu_bonne nourriture_restante
       in nutri_rec popu [] nourri;;
 	    
@@ -824,7 +880,3 @@ Zherbs.affichage nourri;;
 
 
 
-let test x =
-  match x > 3 with
-    | true -> print_string "true"
-    | false -> print_string "false";;
