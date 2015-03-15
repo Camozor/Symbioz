@@ -3,3 +3,4 @@ devoir.cmi
 devoir.cmo
 a.out
 .gitignore~
+a.out*

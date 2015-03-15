@@ -305,14 +305,16 @@ module Make_Krapit : MAKE_INDIVIDU =
       let pos = P.random_pos () in
       let pv = pv_max in
       let id = new_id () in
-      {id = id; age = age; sexe = sexe; tour = 0; esperance_vie = 0; pos = pos; pv = pv};;
+      {id = id; age = age; sexe = sexe; tour = 0; 
+       esperance_vie = 0; pos = pos; pv = pv};;
 
     let creer_bebe pos =
       let age = Bebe in
       let sexe = random_sexe () in
       let pv = pv_max in
       let id = new_id () in
-      {id = id; age = age; sexe = sexe; tour = 0; esperance_vie = 0; pos = pos; pv = pv};;
+      {id = id; age = age; sexe = sexe; tour = 0; 
+       esperance_vie = 0; pos = pos; pv = pv};;
 
     
     let manger quantite ind = 
@@ -358,22 +360,13 @@ module Make_Krapit : MAKE_INDIVIDU =
 	in reproduire nbenfant [];;
 
     let vieillir ind =
-      let age = get_age ind in
-      match age with
+      match get_age ind with
       | Bebe -> Some {ind with age = Enfant}
       | Enfant -> let esperance_vie = (Random.int esperance_vie_max) + 1 in
 		  Some {ind with age = Adulte; esperance_vie = esperance_vie}
-	(*
-	set_age ind Adulte; 
-		  set_esperance_vie ind ((Random.int esperance_vie_max) + 1);
-		  Some ind *)
       | Adulte -> if (get_tour ind) >= (get_esperance_vie ind) 
 		  then None 
-		  else 
-		    begin
-		      set_tour ind ((get_tour ind) + 1);
-		      Some ind
-		    end;;
+		  else Some {ind with tour = (get_tour ind) + 1};;
       
 
     let afficher ind =
@@ -396,37 +389,24 @@ module Make_Krogul : MAKE_INDIVIDU =
   functor (P : PLANETE) ->
   struct
     type pos = P.pos;;
-    type individu = {id : int ref; age : age ref; sexe : sexe ref; tour : int ref;
-		     esperance_vie : int ref; pos : pos ref; pv : int ref};;
+    type individu = {id : int; age : age; sexe : sexe; tour : int;
+		     esperance_vie : int; pos : pos; pv : int};;
 
       
     (* Getters / Setters *)
-    let get_id ind = !(ind.id);;
-    let get_age ind = !(ind.age);;
-    let get_sexe ind = !(ind.sexe);;
-    let get_tour ind = !(ind.tour);;
-    let get_esperance_vie ind = !(ind.esperance_vie);;
-    let get_pos ind = !(ind.pos);;
-    let get_pv ind = !(ind.pv);;
-    let set_id ind id =
-      ind.id := id;;
-    let set_age ind age = 
-      ind.age := age;;
-    let set_sexe ind sexe =
-      ind.sexe := sexe;;
-    let set_tour ind tour =
-      ind.tour := tour;;
-    let set_esperance_vie ind esperance_vie =
-      ind.esperance_vie := esperance_vie;;
-    let set_pos ind pos =
-      ind.pos := pos;;
-    let set_pv ind pv =
-      ind.pv := pv;;
-
+    let get_id ind = ind.id;;
+    let get_age ind = ind.age;;
+    let get_sexe ind = ind.sexe;;
+    let get_tour ind = ind.tour;;
+    let get_esperance_vie ind = ind.esperance_vie;;
+    let get_pos ind = ind.pos;;
+    let get_pv ind = ind.pv;;
 
     let last_id = ref 0;;
-    let incr_last_id () =
-      last_id := !last_id + 1;;
+
+    let new_id () =
+      last_id := !last_id + 1;
+      let id = !last_id in id
 
     let pv_max = 10;;
     let pv_par_tour = 2;;
@@ -444,51 +424,36 @@ module Make_Krogul : MAKE_INDIVIDU =
       (get_id ind1) = (get_id ind2);;
 
     let random_individu () = 
-      let id = ref 0 in
-      let age = ref (random_age ()) in
-      let sexe = ref (random_sexe ()) in
-      let tour = ref 0 in
-      let esperance_vie = ref 0 in
-      let pos = ref (P.random_pos ()) in
-      let pv = ref pv_max in
-      id := !last_id + 1;
-      incr_last_id ();
-      {id = id; age = age; sexe = sexe; tour = tour; esperance_vie = esperance_vie; pos = pos; pv = pv};;
+      let age = random_age () in
+      let sexe = random_sexe () in
+      let pos = P.random_pos () in
+      let pv = pv_max in
+      let id = new_id () in
+      {id = id; age = age; sexe = sexe; tour = 0; 
+       esperance_vie = 0; pos = pos; pv = pv};;
 
     let creer_bebe pos =
-      let id = ref 0 in
-      let age = ref Bebe in
-      let sexe = ref (random_sexe ()) in
-      let tour = ref 0 in
-      let esperance_vie = ref 0 in
-      let pos = ref pos in
-      let pv = ref pv_max in
-      id := !last_id + 1;
-      incr_last_id ();
-      {id = id; age = age; sexe = sexe; tour = tour; esperance_vie = esperance_vie; pos = pos; pv = pv};;
+      let age = Bebe in
+      let sexe = random_sexe () in
+      let pv = pv_max in
+      let id = new_id () in
+      {id = id; age = age; sexe = sexe; tour = 0;
+       esperance_vie = 0; pos = pos; pv = pv};;
 
-
-    let manger quantite ind =
+    let manger quantite ind = 
       if quantite > 0 
-      then
-	begin
-	  if (get_pv ind) > seuil_faim
-	  then
-	    Some ind
-	  else
-	    begin
-	      let pv = ((get_pv ind) + nb_pv_manger) mod (pv_max + 1) in
-	      set_pv ind pv;
-	      Some ind
-	    end
-	end
-      else
-	begin
-	  set_pv ind ((get_pv ind) - pv_par_tour);
+      then 
+	match (get_pv ind) > seuil_faim with
+	    (* cas où le krogul n'a pas faim *)
+	  | true -> Some {ind with pv = (get_pv ind) - pv_par_tour}
+	    (* cas où il mange *)
+	  | false -> Some {ind with pv = ((get_pv ind) + nb_pv_manger) 
+			       mod (pv_max + 1)}
+	    (* les cas où le krogul ne mange pas *)
+      else 
 	  if (get_pv ind) = 0 
 	  then None 
-	  else Some ind
-	end;;
+	  else Some {ind with pv = (get_pv ind) - pv_par_tour};;
 
 
     (*
@@ -530,79 +495,56 @@ module Make_Krogul : MAKE_INDIVIDU =
 	begin	  
 	  let ltraitee = determiner_pos f ind in
 	  let pos_choisie = List.nth ltraitee (Random.int (List.length ltraitee)) in 
-	  set_pos ind pos_choisie;
-	  ind
+	  {ind with pos = pos_choisie}
 	end;;
 
-
+    
     let reproduire nbenfant ind1 ind2 =
       if ((get_age ind1) != Adulte) || ((get_age ind2) != Adulte) || 
 	   ((get_pos ind1) != (get_pos ind2)) || ((get_sexe ind1) = (get_sexe ind2))
       then []
       else
 	let pos = get_pos ind1 in
-	let nbenfant = (Random.int (nb_bebe_par_portee_max + 1)) in
+	let nbenfant = (Random.int nb_bebe_par_portee_max) + 1 in
 	let rec reproduire nb l =
 	  match nb with
 	  | 0 -> []
-	  | nb -> let rand = Random.float 1. in	
-		  if rand < 0.05 
-		  then 
-		    (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
-		  else if rand < 0.1
-		  then 
-		    (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)			
-		  else if rand < 0.15
-		  then 
-		    (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
-		  else if rand < 0.2
-		  then 
-		    (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
-		  else (creer_bebe pos) :: (reproduire (nb-1) l)
+	    (* 5% sur les cases d'à côté et 80% sur la case des parents *)
+	  | nb -> let rand = Random.int 20 in
+		  match rand with
+		  | 0 -> (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
+		  | 1 -> (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)
+		  | 2 -> (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
+		  | 3 -> (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
+		  | _ -> (creer_bebe pos) :: (reproduire (nb-1) l)
 	in reproduire nbenfant [];;
       
-
-    let incr_tour ind =
-      set_tour ind ((get_tour ind) + 1);;
     let vieillir ind =
-      let age = get_age ind in
-      match age with
-      | Bebe -> if (get_tour ind) >= nb_tour_bebe
-		then
-		  begin
-		    set_age ind Enfant;
-		    set_tour ind 0;
-		    Some ind
-		  end
-		else
-		  begin
-		    incr_tour ind;
-		    Some ind
-		  end
-		
-      | Enfant -> if (get_tour ind) >= nb_tour_enfant
-		  then
-		    begin
-		      let esperance_vie = (Random.int (nb_tour_adulte_max - nb_tour_adulte_min + 1))
-					    + nb_tour_adulte_min in
-		      set_age ind Adulte;
-		      set_tour ind 0;
-		      set_esperance_vie ind esperance_vie;
-		      Some ind
-		    end
-		  else
-		    begin
-		      incr_tour ind;
-		      Some ind
-		    end
-		      
-      | Adulte -> if (get_tour ind) >= (get_esperance_vie ind) 
-		  then None 
-		  else 
-		    begin
-		      incr_tour ind;
-		      Some ind
-		    end;;
+      let tour_actuel = (get_tour ind) in
+      match get_age ind with
+	| Bebe ->
+	  begin
+	    match tour_actuel < nb_tour_bebe with
+	      | true -> Some {ind with tour = tour_actuel + 1}
+	      | false -> Some {ind with age = Enfant; tour = 0}
+	  end
+	| Enfant -> 
+	  begin
+	    match tour_actuel < nb_tour_enfant with
+	      | true -> Some {ind with tour = tour_actuel + 1}
+	      | false -> 
+		 let esperance_vie = (Random.int 
+				 (nb_tour_adulte_max - 
+				    nb_tour_adulte_min + 1)) in
+		 Some {ind with age = Adulte; tour = 0; 
+		   esperance_vie = esperance_vie}
+	  end
+	| Adulte ->
+	  begin
+	    match tour_actuel < (get_esperance_vie ind) with
+	      | true -> Some {ind with tour = tour_actuel + 1}
+	      | false -> None
+	  end ;;
       
 
     let afficher ind =
@@ -879,3 +821,10 @@ Zherbs.affichage nourri;;
 let (pop, nourri) = Krapits.nourriture nourri pop;;
 Krapits.affichage pop;;
 Zherbs.affichage nourri;;
+
+
+
+let test x =
+  match x > 3 with
+    | true -> print_string "true"
+    | false -> print_string "false";;
