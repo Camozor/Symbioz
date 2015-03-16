@@ -604,18 +604,18 @@ module type POPULATION =
 
 module type MAKE_PLANTES = 
   functor (P : PLANETE) ->
-    functor (MI : MAKE_INDIVIDU) ->
-      POPULATION with type pos = P.pos 
-		 and type individu = MI(P).individu 
-		 and type nourriture = unit;;
+  functor (MI : MAKE_INDIVIDU) ->
+    POPULATION with type pos = P.pos 
+	       and type individu = MI(P).individu 
+	       and type nourriture = unit;;
 
 module type MAKE_ANIMAUX =
   functor (P : PLANETE) ->
   functor (PROIE : POPULATION with type pos = P.pos) ->
-    functor (MI : MAKE_INDIVIDU) -> 
-  POPULATION with type pos = P.pos 
-	     and type individu = MI(P).individu 
-	     and type nourriture = PROIE.population;;
+  functor (MI : MAKE_INDIVIDU) -> 
+    POPULATION with type pos = P.pos 
+	       and type individu = MI(P).individu 
+	       and type nourriture = PROIE.population;;
 
 
 (**************************** Make_Zherbs ******************************)
@@ -691,7 +691,7 @@ module Make_Zherbs : MAKE_PLANTES =
 module Make_Bestioles : MAKE_ANIMAUX =
   functor (P : PLANETE) ->
   functor (PROIE : POPULATION with type pos = P.pos) ->
-    functor (MI : MAKE_INDIVIDU) ->
+  functor (MI : MAKE_INDIVIDU) ->
   struct
     module IND = MI(P);;
     type pos = P.pos;;
@@ -842,13 +842,49 @@ module Make_Bestioles : MAKE_ANIMAUX =
 
 
 (* Tests *)
+(*
 module Zherb = Make_Zherb (Symbioz);;
-module Zherbs = Make_Zherbs (Symbioz) (Make_Zherb);;
-
-
 module Krapit = Make_Krapit (Symbioz);;
-module Krapits = Make_Bestioles (Symbioz) (Zherbs) (Make_Krapit);;
+module Krogul = Make_Krogul (Symbioz);;
+*)
 
+module Zherbs = Make_Zherbs (Symbioz) (Make_Zherb);;
+module Krapits = Make_Bestioles (Symbioz) (Zherbs) (Make_Krapit);;
+module Kroguls = Make_Bestioles (Symbioz) (Zherbs) (Make_Krogul);;
+
+
+module Make_Game =
+  functor (P : PLANETE) ->
+  functor (Plantes : POPULATION with type pos = P.pos
+				and type nourriture = unit) ->
+  functor (Herbivores : POPULATION with type pos = P.pos 
+				   and type nourriture = Plantes.population) ->
+  functor (Carnivores : POPULATION with type pos = P.pos
+			        and type nourriture = Herbivores.population) ->
+  struct
+    type contexte = 
+      Plantes.population 
+      * Herbivores.population 
+      * Carnivores.population;;
+    
+    let init n = 
+      let plantes = Plantes.random_population n
+      and herbivores = Herbivores.random_population n
+      and carnivores = Carnivores.random_population n in
+      (plantes, herbivores, carnivores);;
+      
+    (* prend un contexte
+       retourne un contexte *)
+    let tour c = 
+      let (plantes, herbivores, carnivores) = c in
+      c;;
+      
+
+  end;;
+
+
+
+(*
 let pop_zherbs = Zherbs.random_population 10;;
 Zherbs.affichage pop_zherbs;;
 let pop2 = Zherbs.vieillissement pop_zherbs;;
@@ -878,5 +914,5 @@ let (pop, nourri) = Krapits.nourriture nourri pop;;
 Krapits.affichage pop;;
 Zherbs.affichage nourri;;
 
-
+*)
 
