@@ -261,7 +261,9 @@ module Make_Zherb : MAKE_INDIVIDU =
       let p = get_pos ind in
       print_string "individu de type zherb, identifiant : ";
       print_int (get_id ind);
-      print_string " en position ";
+      print_string " ,age : ";
+      print_string (string_of_age (get_age ind));
+      print_string " ,en position ";
       P.print_pos p;
       print_string "\n";
 
@@ -379,9 +381,13 @@ module Make_Krapit : MAKE_INDIVIDU =
       let p = get_pos ind in
       print_string "Krapit, identifiant : ";
       print_int (get_id ind);
-      print_string " pv : ";
+      print_string " ,pv : ";
       print_int (get_pv ind);
-      print_string " en position ";
+      print_string " ,age : ";
+      print_string (string_of_age (get_age ind));
+      print_string " ,tour : ";
+      print_int (get_tour ind);
+      print_string " ,en position ";
       P.print_pos p;
       print_string "\n";;
 
@@ -561,9 +567,13 @@ module Make_Krogul : MAKE_INDIVIDU =
       let p = get_pos ind in
       print_string "Krogul, identifiant : ";
       print_int (get_id ind);
-      print_string " pv : ";
+      print_string " ,pv : ";
       print_int (get_pv ind);
-      print_string " en position ";
+       print_string " ,age : ";
+      print_string (string_of_age (get_age ind));
+      print_string " ,tour : ";
+      print_int (get_tour ind);
+      print_string " ,en position ";
       P.print_pos p;
       print_string "\n";;
 
@@ -593,6 +603,7 @@ module type POPULATION =
     val reduce : (individu -> 'a -> 'a) -> population -> 'a -> 'a;;
   
     val vieillissement : population -> population;;
+
     val reproduction : population -> population;;
     val mouvement : nourriture -> population -> population;;
     val nourriture : nourriture -> population -> (population * nourriture);;
@@ -621,9 +632,9 @@ module type MAKE_ANIMAUX =
 (**************************** Make_Zherbs ******************************)
 module Make_Zherbs : MAKE_PLANTES =
   functor (P : PLANETE) ->
-    functor (MI:MAKE_INDIVIDU) ->
+  functor (MI : MAKE_INDIVIDU) ->
   struct
-    module IND = MI(P);;
+    module IND = MI (P);;
     type pos = P.pos;;
     type individu = IND.individu;;
     type population = individu list;;
@@ -693,7 +704,7 @@ module Make_Bestioles : MAKE_ANIMAUX =
   functor (PROIE : POPULATION with type pos = P.pos) ->
   functor (MI : MAKE_INDIVIDU) ->
   struct
-    module IND = MI(P);;
+    module IND = MI (P);;
     type pos = P.pos;;
     type individu = IND.individu;;
     type population = individu list;;
@@ -765,7 +776,7 @@ module Make_Bestioles : MAKE_ANIMAUX =
 				     liste_femelles_restant)
 			((male, femelle) :: liste_couples)
 		end
-      in creer_couples (popu_male, popu_femelle);;
+      in creer_couples (popu_male, popu_femelle) [];;
 
     (* prend une liste de couples 
        retourne une liste d'enfants *)
@@ -783,8 +794,8 @@ module Make_Bestioles : MAKE_ANIMAUX =
 	map trier_individus_par_sexe liste_adulte_par_case in
       let liste_couples_par_case =
 	map creer_couples liste_sexe_par_case in
-      let l = map reproduire_couples liste_couples_par_case
-      in popu;;
+      let liste_enfants_par_case = map reproduire_couples liste_couples_par_case
+      in popu @ (flatten liste_enfants_par_case);;
 	
 
 
@@ -848,9 +859,6 @@ module Krapit = Make_Krapit (Symbioz);;
 module Krogul = Make_Krogul (Symbioz);;
 *)
 
-module Zherbs = Make_Zherbs (Symbioz) (Make_Zherb);;
-module Krapits = Make_Bestioles (Symbioz) (Zherbs) (Make_Krapit);;
-module Kroguls = Make_Bestioles (Symbioz) (Zherbs) (Make_Krogul);;
 
 
 module Make_Game =
@@ -875,14 +883,47 @@ module Make_Game =
       
     (* prend un contexte
        retourne un contexte *)
-    let tour c = 
-      let (plantes, herbivores, carnivores) = c in
-      c;;
-      
+    let tour (plantes, herbivores, carnivores) = 
+      let (plantes, ()) = Plantes.nourriture () plantes in
+      let plantes = Plantes.reproduction plantes in
+      let plantes = Plantes.mouvement () plantes in
+      let (carnivores, herbivores) = Carnivores.nourriture herbivores carnivores in
+      let carnivores = Carnivores.reproduction carnivores in
+      let carnivores = Carnivores.mouvement herbivores carnivores in
+      let (herbivores, plantes) = Herbivores.nourriture plantes herbivores in
+      let herbivores = Herbivores.reproduction herbivores in
+      let herbivores = Herbivores.mouvement plantes herbivores in
+      let plantes = Plantes.vieillissement plantes in
+      let carnivores = Carnivores.vieillissement carnivores in
+      let herbivores = Herbivores.vieillissement herbivores in
+      (plantes, herbivores, carnivores);;
 
+    let affichage (plantes, herbivores, carnivores) =
+      print_string "---------------------------------\n";
+      print_string "Affichage du monde : \n";
+      print_string "Affichage des plantes :\n";
+      Plantes.affichage plantes;
+      print_string "Affichage des carnivores :\n";
+      Carnivores.affichage carnivores;
+      print_string "Affichage des herbivores :\n";
+      Herbivores.affichage herbivores;;
+      
   end;;
 
 
+module Zherbs = Make_Zherbs (Symbioz) (Make_Zherb);;
+module Krapits = Make_Bestioles (Symbioz) (Zherbs) (Make_Krapit);;
+module Kroguls = Make_Bestioles (Symbioz) (Krapits) (Make_Krogul);;
+
+module Game = Make_Game (Symbioz) (Zherbs) (Krapits) (Kroguls);;
+
+let c = Game.init 1;;
+let c = Game.tour c;;
+Game.affichage c;;
+let c = Game.tour c;;
+Game.affichage c;;
+let c = Game.tour c;;
+Game.affichage c;;
 
 (*
 let pop_zherbs = Zherbs.random_population 10;;
@@ -915,4 +956,3 @@ Krapits.affichage pop;;
 Zherbs.affichage nourri;;
 
 *)
-
