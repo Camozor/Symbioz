@@ -44,6 +44,7 @@ let random_get l =
 
 (* Q5 *)
 let clean_list l =
+  (* nettoie la liste lres des options et stocke le résultat dans lbon *)
   let rec clean_list lbon lres =
     match lres with
     | [] -> lbon
@@ -95,7 +96,7 @@ module type PLANETE =
     val random_pos : unit -> pos;;
     val at_pos : ('a -> pos) -> pos -> 'a list -> 'a list;;
     val sort_by_pos : ('a -> pos) -> 'a list -> 'a list list;;
-    val print_pos : pos -> unit;;
+    val string_of_pos : pos -> string;;
 
     val display : (pos -> unit) -> pos -> unit;;
     val clear : unit -> unit;;
@@ -133,11 +134,9 @@ module Symbioz : PLANETE with type pos = int * int =
        f : fonction qui indique comment calculer la position d'un element 
        p : une position donnee
        l : liste des elements     
-       retour : liste des elements a la position p
+       retour : liste des elements à la position p
     *)
-    let at_pos f p l =
-      let filtre el = (f el = p)
-      in List.filter filtre l;;
+    let at_pos f p l = List.filter (fun x -> (f x) = p) l;;
       
     (* 
        f : fonction qui indique comment calculer la position d'un element 
@@ -145,18 +144,19 @@ module Symbioz : PLANETE with type pos = int * int =
        retour : liste de liste des elements par positions
        (autant de listes que de cases)
     *)
-    let sort_by_pos f l = 
-      let ll = ref [] in
-      for i = 1 to size_x do
-	  for j = 1 to size_y do
-	      ll := !ll @ [(at_pos f (i,j) l)];
-	  done
-      done;
-      !ll;;
+    let sort_by_pos f l =
+      let rec sort_by_pos x y acc =
+	match (x, y) with
+	| (0, _) -> acc
+	| (_, 0) -> sort_by_pos (x -1) size_y acc
+	| _ ->
+	  let elements = (at_pos f (x, y) l) in
+	  sort_by_pos x (y -1) (elements::acc)
+      in sort_by_pos size_x size_y []
+      
 
-    let print_pos (p1, p2) =
-      print_string "("; print_int p1; print_string ", ";
-      print_int p2; print_string ")";;
+    let string_of_pos (p1, p2) =
+      Printf.sprintf "(%d, %d)" p1 p2;;
 
 
     let clear () = ();;
@@ -241,13 +241,12 @@ module Make_Zherb : MAKE_INDIVIDU =
 	  match nb with
 	  | 0 -> []
 	  (* 10% sur les cases d'à côté et 60% sur la case des parents *)
-	  | nb -> let rand = Random.int 10 in
-		  match rand with
-		  | 0 -> (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
-		  | 1 -> (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)
-		  | 2 -> (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
-		  | 3 -> (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
-		  | _ -> (creer_bebe pos) :: (reproduire (nb-1) l)
+	  | _ -> match (Random.int 10) with
+	    | 0 -> (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
+	    | 1 -> (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)
+	    | 2 -> (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
+	    | 3 -> (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
+	    | _ -> (creer_bebe pos) :: (reproduire (nb-1) l)
 	in reproduire nbenfant [];;
 
 
@@ -258,14 +257,10 @@ module Make_Zherb : MAKE_INDIVIDU =
 	| Adulte -> None;;
 
     let afficher ind =
-      let p = get_pos ind in
-      print_string "individu de type zherb, identifiant : ";
-      print_int (get_id ind);
-      print_string " ,age : ";
-      print_string (string_of_age (get_age ind));
-      print_string " ,en position ";
-      P.print_pos p;
-      print_string "\n";
+      Printf.printf "Zherb, id : %d, age : %s, 
+                     en position %s\n"
+	(get_id ind) (string_of_age (get_age ind)) 
+	(P.string_of_pos (get_pos ind));;
 
   end;;
 
@@ -358,13 +353,12 @@ module Make_Krapit : MAKE_INDIVIDU =
 	  match nb with
 	  | 0 -> []
 	  (* 20% sur les cases d'à côté et 20% sur la case des parents *)
-	  | nb -> let rand = Random.int 5 in
-		  match rand with
-		  | 0 -> (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
-		  | 1 -> (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)
-		  | 2 -> (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
-		  | 3 -> (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
-		  | _ -> (creer_bebe pos) :: (reproduire (nb-1) l)
+	  | _ -> match Random.int 5 with
+	    | 0 -> (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
+	    | 1 -> (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)
+	    | 2 -> (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
+	    | 3 -> (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
+	    | _ -> (creer_bebe pos) :: (reproduire (nb-1) l)
 	in reproduire nbenfant [];;
 
     let vieillir ind =
@@ -378,18 +372,10 @@ module Make_Krapit : MAKE_INDIVIDU =
       
 
     let afficher ind =
-      let p = get_pos ind in
-      print_string "Krapit, identifiant : ";
-      print_int (get_id ind);
-      print_string " ,pv : ";
-      print_int (get_pv ind);
-      print_string " ,age : ";
-      print_string (string_of_age (get_age ind));
-      print_string " ,tour : ";
-      print_int (get_tour ind);
-      print_string " ,en position ";
-      P.print_pos p;
-      print_string "\n";;
+      Printf.printf "Krapit %s, id : %d, age : %s, tour : %d, en position : %s\n"
+	(string_of_sexe (get_sexe ind))
+	(get_id ind) (string_of_age (get_age ind)) (get_tour ind) 
+	(P.string_of_pos (get_pos ind));;
 
   end;;
 
@@ -524,13 +510,12 @@ module Make_Krogul : MAKE_INDIVIDU =
 	  match nb with
 	  | 0 -> []
 	    (* 5% sur les cases d'à côté et 80% sur la case des parents *)
-	  | nb -> let rand = Random.int 20 in
-		  match rand with
-		  | 0 -> (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
-		  | 1 -> (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)
-		  | 2 -> (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
-		  | 3 -> (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
-		  | _ -> (creer_bebe pos) :: (reproduire (nb-1) l)
+	  | _ ->  match Random.int 20 with
+	    | 0 -> (creer_bebe (P.ouest pos)) :: (reproduire (nb-1) l)
+	    | 1 -> (creer_bebe (P.nord pos)) :: (reproduire (nb-1) l)
+	    | 2 -> (creer_bebe (P.est pos)) :: (reproduire (nb-1) l)
+	    | 3 -> (creer_bebe (P.sud pos)) :: (reproduire (nb-1) l)
+	    | _ -> (creer_bebe pos) :: (reproduire (nb-1) l)
 	in reproduire nbenfant [];;
       
     let vieillir ind =
@@ -564,18 +549,11 @@ module Make_Krogul : MAKE_INDIVIDU =
       
 
     let afficher ind =
-      let p = get_pos ind in
-      print_string "Krogul, identifiant : ";
-      print_int (get_id ind);
-      print_string " ,pv : ";
-      print_int (get_pv ind);
-       print_string " ,age : ";
-      print_string (string_of_age (get_age ind));
-      print_string " ,tour : ";
-      print_int (get_tour ind);
-      print_string " ,en position ";
-      P.print_pos p;
-      print_string "\n";;
+       Printf.printf "Krogul %s, id : %d, age : %s, tour : %d, 
+                      en position : %s\n"
+	(string_of_sexe (get_sexe ind))
+	(get_id ind) (string_of_age (get_age ind)) (get_tour ind) 
+	(P.string_of_pos (get_pos ind));;
 
   end;;
  
@@ -721,6 +699,7 @@ module Make_Bestioles : MAKE_ANIMAUX =
         
     let sous_population popu p = P.at_pos (IND.get_pos) p popu;;
 
+    (* retire ind de popu *)
     let tuer_individu popu ind = 
       List.filter (fun x -> not(IND.egal x ind)) popu;;
              
@@ -788,24 +767,25 @@ module Make_Bestioles : MAKE_ANIMAUX =
 
 
     let reproduction popu =
+      (* filtre pour ne garder que les adultes 
+	 et sépare les adultes par cases *)
       let popu_adulte = garder_adultes popu in
       let liste_adulte_par_case = separer_individus popu_adulte in
+      (* sépare les mâles des femelles par cases
+	 et crée une liste de couples par cases *)
       let liste_sexe_par_case = 
 	map trier_individus_par_sexe liste_adulte_par_case in
       let liste_couples_par_case =
 	map creer_couples liste_sexe_par_case in
+      (* reproduit les couples et retourne la population globale *)
       let liste_enfants_par_case = map reproduire_couples liste_couples_par_case
       in popu @ (flatten liste_enfants_par_case);;
 	
 
-
     (* Pour le moment fonction de stratégie constante *)
     let strategie pos = 1;;
     let mouvement nourri popu = map (IND.bouger strategie) popu;; 
-      
-    (*
-    let nourriture nourri popu = (popu, nourri);;
-    *)
+
 
     let nourriture nourri popu =
       let rec nutri_rec popu_restante popu_bonne nourriture_bonne =
@@ -841,24 +821,9 @@ module Make_Bestioles : MAKE_ANIMAUX =
 		(mangeur :: (tuer_individu popu_bonne predateur)) in
 	      nutri_rec predateur' nouvelle_popu_bonne nourriture_restante
       in nutri_rec popu [] nourri;;
-	    
-	    
-	    
+	    	  	    
     let affichage popu = iter (IND.afficher) popu;;
-   
-
   end;;
-
-
-
-
-(* Tests *)
-(*
-module Zherb = Make_Zherb (Symbioz);;
-module Krapit = Make_Krapit (Symbioz);;
-module Krogul = Make_Krogul (Symbioz);;
-*)
-
 
 
 module Make_Game =
@@ -870,11 +835,15 @@ module Make_Game =
   functor (Carnivores : POPULATION with type pos = P.pos
 			        and type nourriture = Herbivores.population) ->
   struct
+    (* populations du jeu *)
     type contexte = 
       Plantes.population 
       * Herbivores.population 
       * Carnivores.population;;
     
+    (* prend un nombre d'individus à créer par espèces
+       retourne un contexte
+    *)
     let init n = 
       let plantes = Plantes.random_population n
       and herbivores = Herbivores.random_population n
@@ -910,14 +879,15 @@ module Make_Game =
       
   end;;
 
-
+(* création des modules de populations et de jeu *)
 module Zherbs = Make_Zherbs (Symbioz) (Make_Zherb);;
 module Krapits = Make_Bestioles (Symbioz) (Zherbs) (Make_Krapit);;
 module Kroguls = Make_Bestioles (Symbioz) (Krapits) (Make_Krogul);;
 
 module Game = Make_Game (Symbioz) (Zherbs) (Krapits) (Kroguls);;
 
-let c = Game.init 1;;
+(* crée un jeu avec 30 individus pour chaque espèces *)
+let c = Game.init 30;;
 let c = Game.tour c;;
 Game.affichage c;;
 let c = Game.tour c;;
@@ -925,34 +895,3 @@ Game.affichage c;;
 let c = Game.tour c;;
 Game.affichage c;;
 
-(*
-let pop_zherbs = Zherbs.random_population 10;;
-Zherbs.affichage pop_zherbs;;
-let pop2 = Zherbs.vieillissement pop_zherbs;;
-Zherbs.affichage pop2;;
-let pop3 = Zherbs.vieillissement pop_zherbs;;
-Zherbs.affichage pop3;;
-let pop4 = Zherbs.vieillissement pop3;;
-Zherbs.affichage pop4;;
-
-
-
-
-let pop = Krapits.random_population 100;;
-Krapits.affichage pop;;
-Krapits.mouvement pop_zherbs pop;;
-Krapits.affichage pop;;
-let (pop, nourri) = Krapits.nourriture pop_zherbs pop;;
-Krapits.affichage pop;;
-Zherbs.affichage nourri;;
-let (pop, nourri) = Krapits.nourriture nourri pop;;
-Krapits.affichage pop;;
-Zherbs.affichage nourri;;
-let (pop, nourri) = Krapits.nourriture nourri pop;;
-Krapits.affichage pop;;
-Zherbs.affichage nourri;;
-let (pop, nourri) = Krapits.nourriture nourri pop;;
-Krapits.affichage pop;;
-Zherbs.affichage nourri;;
-
-*)
